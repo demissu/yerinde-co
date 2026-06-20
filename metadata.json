@@ -1,0 +1,6 @@
+{
+  "name": "Yerinde",
+  "description": "Personalized place discovery app for cafes, restaurants, bars and aesthetic local spots in İzmir and neighboring areas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
