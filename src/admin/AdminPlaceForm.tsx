@@ -1,6 +1,7 @@
 import React, { FormEvent, useEffect, useState } from 'react';
 import { getAdminPlace, mapRowToFormValues, saveAdminPlace } from './adminPlaceService';
 import { AdminPlaceFormValues, categoryOptions, priceLevelOptions } from './adminTypes';
+import MediaPicker from './MediaPicker';
 
 interface AdminPlaceFormProps {
   placeId?: string;
@@ -143,10 +144,9 @@ export default function AdminPlaceForm({ placeId }: AdminPlaceFormProps) {
             </select>
           </label>
 
-          <TextField
+          <MediaPicker
             label="Image URL"
             required
-            type="url"
             value={values.image_url}
             onChange={(value) => updateValue('image_url', value)}
             className="md:col-span-2"

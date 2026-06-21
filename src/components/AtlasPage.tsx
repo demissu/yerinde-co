@@ -1,20 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Clock, MapPin, Route, Sparkles } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Route, Search, Sparkles } from 'lucide-react';
+import {
+  cityRegionByName,
+  regionCoverImages,
+  TURKEY_CITIES,
+  TURKEY_REGION_FILTERS,
+  TurkeyRegionName,
+} from '../data/turkeyCities';
+import { useAtlasContent } from '../hooks/useAtlasContent';
 import { Place } from '../types';
 
 interface AtlasPageProps {
   places: Place[];
   onSelectPlace: (place: Place) => void;
 }
-
-type TurkeyRegion =
-  | 'Marmara'
-  | 'Ege'
-  | 'Akdeniz'
-  | 'İç Anadolu'
-  | 'Karadeniz'
-  | 'Doğu Anadolu'
-  | 'Güneydoğu Anadolu';
 
 type AtlasSelection = {
   title: string;
@@ -24,38 +23,21 @@ type AtlasSelection = {
   coverImage?: string;
 };
 
-const regionByCity: Record<string, TurkeyRegion> = {
-  İstanbul: 'Marmara',
-  Balıkesir: 'Marmara',
-  Cunda: 'Marmara',
-  Çanakkale: 'Marmara',
-  İzmir: 'Ege',
-  Muğla: 'Ege',
-  Manisa: 'Ege',
-  Antalya: 'Akdeniz',
-  Ankara: 'İç Anadolu',
-  Eskişehir: 'İç Anadolu',
-  Nevşehir: 'İç Anadolu',
-  Trabzon: 'Karadeniz',
-  Mardin: 'Güneydoğu Anadolu',
-  Gaziantep: 'Güneydoğu Anadolu',
-};
-
-const getRegionForPlace = (place: Place): TurkeyRegion =>
-  regionByCity[place.city] || regionByCity[place.district] || 'Ege';
+const getRegionForPlace = (place: Place): TurkeyRegionName =>
+  cityRegionByName[place.city] || cityRegionByName[place.district] || 'Ege';
 
 const coverImages = {
-  marmara: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
-  ege: 'https://images.unsplash.com/photo-1567996603104-4b98a8e475bb?auto=format&fit=crop&w=900&q=80',
-  akdeniz: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=900&q=80',
-  anadolu: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&w=900&q=80',
-  karadeniz: 'https://images.unsplash.com/photo-1601297183305-6df142704ea2?auto=format&fit=crop&w=900&q=80',
-  dogu: 'https://images.unsplash.com/photo-1606046604972-77cc76aee944?auto=format&fit=crop&w=900&q=80',
-  guneydogu: 'https://images.unsplash.com/photo-1574192324001-ee41e18ed679?auto=format&fit=crop&w=900&q=80',
+  marmara: regionCoverImages.Marmara,
+  ege: regionCoverImages.Ege,
+  akdeniz: regionCoverImages.Akdeniz,
+  anadolu: regionCoverImages['İç Anadolu'],
+  karadeniz: regionCoverImages.Karadeniz,
+  dogu: regionCoverImages['Doğu Anadolu'],
+  guneydogu: regionCoverImages['Güneydoğu Anadolu'],
 };
 
 const regionMeta: {
-  name: TurkeyRegion;
+  name: TurkeyRegionName;
   description: string;
   coverImage: string;
   routeCount: number;
@@ -112,34 +94,6 @@ const regionMeta: {
   },
 ];
 
-const cityMeta = [
-  { name: 'İzmir', region: 'Ege', why: 'Kahve, sahil, tasarım ve gastronomi arasında dengeli bir başlangıç.', tags: ['kahve', 'kıyı', 'tasarım'] },
-  { name: 'İstanbul', region: 'Marmara', why: 'Mahalle mahalle değişen kültür, yemek ve çağdaş şehir enerjisi.', tags: ['şehir', 'galeri', 'sofra'] },
-  { name: 'Ankara', region: 'İç Anadolu', why: 'Sakin kafeler, müzeler ve yalın şehir ritmi için iyi bir merkez.', tags: ['müze', 'sakin', 'şehir'] },
-  { name: 'Antalya', region: 'Akdeniz', why: 'Kaleiçi sokakları, koylar ve güneşli uzun gün planları.', tags: ['deniz', 'tarih', 'gün batımı'] },
-  { name: 'Muğla', region: 'Ege', why: 'Datça, Göcek ve kıyı kasabalarıyla yavaş rota omurgası.', tags: ['koy', 'tekne', 'yavaş'] },
-  { name: 'Balıkesir', region: 'Marmara', why: 'Cunda, Ayvalık ve ada ruhuyla kuzey Ege geçişi.', tags: ['ada', 'zeytin', 'kahve'] },
-  { name: 'Çanakkale', region: 'Marmara', why: 'Bozcaada ve kıyı kasabalarıyla hafif, rüzgarlı bir kaçış.', tags: ['ada', 'şarap', 'rüzgar'] },
-  { name: 'Eskişehir', region: 'İç Anadolu', why: 'Genç şehir enerjisi, yürünebilir sokaklar ve kahve molaları.', tags: ['kahve', 'nehir', 'şehir'] },
-  { name: 'Nevşehir', region: 'İç Anadolu', why: 'Kapadokya deneyiminin vadiler, taş oteller ve gün doğumuyla merkezi.', tags: ['vadi', 'taş', 'balon'] },
-  { name: 'Mardin', region: 'Güneydoğu Anadolu', why: 'Taş teraslar, dar sokaklar ve altın saat yürüyüşleri.', tags: ['taş', 'teras', 'tarih'] },
-  { name: 'Gaziantep', region: 'Güneydoğu Anadolu', why: 'Sofra kültürü, bakır çarşısı ve yoğun lezzet hafızası.', tags: ['sofra', 'baharat', 'çarşı'] },
-  { name: 'Trabzon', region: 'Karadeniz', why: 'Yağmur, yayla hissi ve Karadeniz kıyısında sıcak molalar.', tags: ['yağmur', 'yayla', 'çay'] },
-] as const;
-
-const destinationMeta = [
-  { name: 'Kapadokya', city: 'Nevşehir', tags: ['vadi', 'balon', 'taş otel'], image: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Alaçatı', city: 'İzmir', tags: ['taş sokak', 'rüzgar', 'akşam'], image: 'https://images.unsplash.com/photo-1567996603104-4b98a8e475bb?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Urla', city: 'İzmir', tags: ['gastronomi', 'bağ', 'yavaş'], image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Cunda', city: 'Balıkesir', tags: ['ada', 'taş', 'kahve'], image: 'https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Bozcaada', city: 'Çanakkale', tags: ['ada', 'bağ', 'rüzgar'], image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Kaş', city: 'Antalya', tags: ['koy', 'dalış', 'gün batımı'], image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Datça', city: 'Muğla', tags: ['badem', 'koy', 'sakin'], image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Göcek', city: 'Muğla', tags: ['tekne', 'mavi', 'premium'], image: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Mardin', city: 'Mardin', tags: ['taş', 'teras', 'gece'], image: 'https://images.unsplash.com/photo-1574192324001-ee41e18ed679?auto=format&fit=crop&w=900&q=80' },
-  { name: 'Abant', city: 'Bolu', tags: ['göl', 'orman', 'hafta sonu'], image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=900&q=80' },
-];
-
 const routeMeta = [
   { title: 'Hafta Sonu Kaçamakları', area: 'Ege', description: 'Cuma akşamından pazar kahvesine uzanan kısa ve rafine kaçışlar.', image: coverImages.ege, duration: '2 gün', stops: 5, tags: ['yavaş', 'butik', 'kıyı'], placeIds: ['place_url_hic', 'place_url_liman', 'place_ala_imren'] },
   { title: 'Kahve Rotaları', area: 'İzmir', description: 'Nitelikli kahve, sakin masa ve iyi ışık arayanlara özel duraklar.', image: 'https://images.unsplash.com/photo-1498804103079-a6351b050096?auto=format&fit=crop&w=900&q=80', duration: '1 gün', stops: 4, tags: ['kahve', 'odak', 'minimal'], placeIds: ['place_als_awake', 'place_bos_punta', 'place_man_sultan'] },
@@ -149,23 +103,73 @@ const routeMeta = [
   { title: 'Fotoğraf Çekmelik Yerler', area: 'Türkiye', description: 'Güzel ışık, doku ve mimari arayanlara görsel yoğunluğu yüksek seçki.', image: 'https://images.unsplash.com/photo-1531973576160-7125cd663d86?auto=format&fit=crop&w=900&q=80', duration: '1 gün', stops: 6, tags: ['fotojenik', 'ışık', 'mimari'], placeIds: ['place_ala_windmill', 'place_url_dam', 'place_cun_ayna'] },
 ];
 
-function includesDestination(place: Place, destination: string) {
-  const haystack = `${place.name} ${place.city} ${place.district} ${place.address} ${place.atmosphereTags.join(' ')}`.toLowerCase();
-  return haystack.includes(destination.toLowerCase());
-}
-
 export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
   const [selection, setSelection] = useState<AtlasSelection | null>(null);
+  const [citySearch, setCitySearch] = useState('');
+  const [cityRegionFilter, setCityRegionFilter] = useState<(typeof TURKEY_REGION_FILTERS)[number]>('Tümü');
+  const [showAllCities, setShowAllCities] = useState(false);
+  const atlasContent = useAtlasContent();
+  const atlasRegions = atlasContent.regions.length > 0 ? atlasContent.regions : regionMeta;
+  const atlasRoutes = atlasContent.routes.length > 0 ? atlasContent.routes : routeMeta;
 
   const regionCounts = useMemo(() => {
-    return regionMeta.reduce<Record<TurkeyRegion, number>>((acc, region) => {
+    return atlasRegions.reduce<Record<string, number>>((acc, region) => {
       acc[region.name] = places.filter((place) => getRegionForPlace(place) === region.name).length;
       return acc;
-    }, {} as Record<TurkeyRegion, number>);
-  }, [places]);
+    }, {});
+  }, [atlasRegions, places]);
 
   const getCityPlaces = (city: string) =>
     places.filter((place) => place.city === city || (city === 'Balıkesir' && place.city === 'Cunda'));
+
+  const atlasCities = useMemo(() => {
+    const cityContentByName = new Map(
+      atlasContent.cities.map((city) => [city.name.toLocaleLowerCase('tr-TR'), city])
+    );
+
+    return TURKEY_CITIES.map((city) => {
+      const content = cityContentByName.get(city.name.toLocaleLowerCase('tr-TR'));
+      const cityPlaces = getCityPlaces(city.name);
+      const cityPlaceIds = new Set(cityPlaces.map((place) => place.id));
+      const routeCount = atlasRoutes.filter((route) => {
+        const area = route.area.toLocaleLowerCase('tr-TR');
+        return (
+          area === city.name.toLocaleLowerCase('tr-TR') ||
+          route.placeIds.some((placeId) => cityPlaceIds.has(placeId))
+        );
+      }).length;
+
+      return {
+        ...city,
+        plateCode: content?.plateCode || city.plateCode,
+        region: (content?.region || city.region) as TurkeyRegionName,
+        why: content?.why || city.why,
+        coverImage: content?.coverImage || city.coverImage,
+        tags: content?.tags.length ? content.tags : city.tags,
+        placeCount: cityPlaces.length,
+        routeCount,
+      };
+    });
+  }, [atlasContent.cities, atlasRoutes, places]);
+
+  const filteredCities = useMemo(() => {
+    const query = citySearch.trim().toLocaleLowerCase('tr-TR');
+
+    return atlasCities
+      .filter((city) => cityRegionFilter === 'Tümü' || city.region === cityRegionFilter)
+      .filter((city) =>
+        query
+          ? `${city.name} ${city.plateCode} ${city.region}`.toLocaleLowerCase('tr-TR').includes(query)
+          : true
+      )
+      .sort((a, b) => {
+        if (b.placeCount !== a.placeCount) return b.placeCount - a.placeCount;
+        if (b.routeCount !== a.routeCount) return b.routeCount - a.routeCount;
+        return a.name.localeCompare(b.name, 'tr-TR');
+      });
+  }, [atlasCities, cityRegionFilter, citySearch]);
+
+  const visibleCities = showAllCities ? filteredCities : filteredCities.slice(0, 20);
 
   const showSelection = (nextSelection: AtlasSelection) => {
     setSelection(nextSelection);
@@ -244,9 +248,9 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
 
       <div className="px-6 py-6 space-y-9">
         <section className="space-y-4">
-          <AtlasSectionTitle title="Bölgeler" count={regionMeta.length} />
+          <AtlasSectionTitle title="Bölgeler" count={atlasRegions.length} />
           <div className="no-scrollbar overflow-x-auto flex gap-4 -mx-6 px-6">
-            {regionMeta.map((region) => {
+            {atlasRegions.map((region) => {
               const regionPlaces = places.filter((place) => getRegionForPlace(place) === region.name);
               return (
                 <button
@@ -264,7 +268,7 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
                   <div className="p-4 space-y-2">
                     <h3 className="font-serif italic text-xl text-[#2C2C2C]">{region.name}</h3>
                     <p className="text-[11px] text-[#6A665D] leading-relaxed line-clamp-2">{region.description}</p>
-                    <MetaRow placeCount={regionCounts[region.name]} routeCount={region.routeCount} />
+                    <MetaRow placeCount={regionCounts[region.name] ?? 0} routeCount={region.routeCount} />
                     <TagRow tags={region.moodTags} />
                   </div>
                 </button>
@@ -274,9 +278,53 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
         </section>
 
         <section className="space-y-4">
-          <AtlasSectionTitle title="Şehirler" count={cityMeta.length} />
-          <div className="grid grid-cols-1 gap-3">
-            {cityMeta.map((city) => {
+          <div className="space-y-1">
+            <div className="flex items-end justify-between">
+              <h2 className="font-serif text-xl font-normal text-[#2C2C2C] flex items-center gap-2">
+                <MapPin size={16} className="text-[#bd9a6f]" />
+                <span>Şehirler</span>
+              </h2>
+              <span className="font-mono text-[10px] text-[#8C8880] font-semibold tracking-wider">81</span>
+            </div>
+            <p className="font-sans text-xs text-[#6A665D] leading-relaxed">
+              Türkiye'nin dört bir yanındaki şehirleri keşfet.
+            </p>
+          </div>
+
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#bd9a6f]" />
+            <input
+              value={citySearch}
+              onChange={(event) => {
+                setCitySearch(event.target.value);
+                setShowAllCities(false);
+              }}
+              placeholder="Şehir ara..."
+              className="w-full bg-white border border-artistic-border rounded-full pl-9 pr-4 py-3 text-xs text-[#2C2C2C] placeholder:text-[#A8A39B] focus:outline-none focus:border-[#bd9a6f] shadow-sm"
+            />
+          </div>
+
+          <div className="no-scrollbar overflow-x-auto flex gap-2 -mx-6 px-6">
+            {TURKEY_REGION_FILTERS.map((region) => (
+              <button
+                key={region}
+                onClick={() => {
+                  setCityRegionFilter(region);
+                  setShowAllCities(false);
+                }}
+                className={`shrink-0 rounded-full border px-3.5 py-2 font-mono text-[9px] font-bold tracking-widest uppercase transition-colors ${
+                  cityRegionFilter === region
+                    ? 'border-[#bd9a6f] bg-[#bd9a6f] text-white'
+                    : 'border-artistic-border bg-white text-[#8C8880]'
+                }`}
+              >
+                {region}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            {visibleCities.map((city) => {
               const cityPlaces = getCityPlaces(city.name);
               return (
                 <button
@@ -286,60 +334,59 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
                     eyebrow: city.region,
                     description: city.why,
                     places: cityPlaces,
+                    coverImage: city.coverImage,
                   })}
-                  className="bg-white border border-artistic-border rounded-[1.5rem] p-4 text-left shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
+                  className="bg-white border border-artistic-border rounded-[1.35rem] overflow-hidden text-left shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <span className="font-mono text-[8px] font-bold text-[#bd9a6f] tracking-widest uppercase">{city.region}</span>
-                      <h3 className="font-serif italic text-xl text-[#2C2C2C] mt-0.5">{city.name}</h3>
-                    </div>
-                    <span className="font-mono text-[9px] text-[#8C8880] border border-artistic-border rounded-full px-2.5 py-1">
-                      {cityPlaces.length} mekan
+                  <div className="relative aspect-4/3 bg-[#F1EFEC] overflow-hidden">
+                    <img
+                      src={city.coverImage}
+                      alt={city.name}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="absolute left-2.5 top-2.5 bg-warm-cream/95 border border-artistic-border rounded-full px-2 py-1 font-mono text-[10px] font-bold text-[#2C2C2C] shadow-sm">
+                      {city.plateCode}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#6A665D] leading-relaxed mt-2">{city.why}</p>
-                  <TagRow tags={[...city.tags]} />
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <AtlasSectionTitle title="Öne Çıkan Destinasyonlar" count={destinationMeta.length} />
-          <div className="grid grid-cols-2 gap-4">
-            {destinationMeta.map((destination) => {
-              const destinationPlaces = places.filter((place) => includesDestination(place, destination.name) || place.city === destination.city || place.district === destination.name);
-              return (
-                <button
-                  key={destination.name}
-                  onClick={() => showSelection({
-                    title: destination.name,
-                    eyebrow: 'Destinasyon',
-                    description: `${destination.name} çevresinde editör seçkileri ve yakın duraklar.`,
-                    places: destinationPlaces,
-                    coverImage: destination.image,
-                  })}
-                  className="text-left group"
-                >
-                  <div className="aspect-1/1 rounded-[2rem] overflow-hidden bg-[#F1EFEC] border border-artistic-border shadow-sm">
-                    <img src={destination.image} alt={destination.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="p-3 space-y-1">
+                    <span className="font-mono text-[7px] font-bold text-[#bd9a6f] tracking-widest uppercase line-clamp-1">
+                      {city.region}
+                    </span>
+                    <h3 className="font-serif italic text-lg text-[#2C2C2C] leading-tight">{city.name}</h3>
+                    <div className="flex flex-wrap gap-1.5 font-mono text-[8px] text-[#8C8880]">
+                      <span>{city.placeCount} mekan</span>
+                      <span className="text-[#E5E2DE]">•</span>
+                      <span>{city.routeCount} rota</span>
+                    </div>
                   </div>
-                  <h3 className="font-serif italic text-base text-[#2C2C2C] mt-3 px-1">{destination.name}</h3>
-                  <p className="font-mono text-[8px] uppercase tracking-widest text-[#8C8880] px-1 mt-0.5">
-                    {destinationPlaces.length} mekan
-                  </p>
                 </button>
               );
             })}
           </div>
+
+          {visibleCities.length === 0 && (
+            <div className="bg-white border border-artistic-border rounded-[2rem] p-8 text-center shadow-sm">
+              <Sparkles size={22} className="text-[#bd9a6f] mx-auto mb-3" />
+              <h3 className="font-serif italic text-lg text-[#2C2C2C]">Şehir bulunamadı.</h3>
+              <p className="text-xs text-[#8C8880] mt-2">Arama veya bölge filtresini değiştirmeyi dene.</p>
+            </div>
+          )}
+
+          {!showAllCities && filteredCities.length > visibleCities.length && (
+            <button
+              onClick={() => setShowAllCities(true)}
+              className="w-full bg-white border border-artistic-border rounded-full px-4 py-3 font-mono text-[10px] font-bold tracking-widest uppercase text-[#bd9a6f] shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
+            >
+              Tüm şehirleri göster
+            </button>
+          )}
         </section>
 
         <section className="space-y-4">
-          <AtlasSectionTitle title="Rotalar" count={routeMeta.length} />
+          <AtlasSectionTitle title="Rotalar" count={atlasRoutes.length} />
           <div className="space-y-4">
-            {routeMeta.map((route) => {
+            {atlasRoutes.map((route) => {
               const routePlaces = places.filter((place) => route.placeIds.includes(place.id));
               return (
                 <button
