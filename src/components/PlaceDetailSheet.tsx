@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Place, SavedListName } from '../types';
-import { X, Bookmark, Compass, Check, Plus, Copy, Star, MapPin, Sparkles, BookOpen } from 'lucide-react';
+import { X, Bookmark, Compass, Check, Plus, Copy, Star, MapPin, Sparkles, BookOpen, ExternalLink, Phone } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface PlaceDetailSheetProps {
@@ -17,6 +17,20 @@ export default function PlaceDetailSheet({
   onClose,
 }: PlaceDetailSheetProps) {
   const [copied, setCopied] = useState(false);
+  const designScore = place.designScore ?? place.attributes.designFactor;
+  const espressoScore = place.espressoScore ?? place.attributes.coffeeRating;
+  const quietnessScore = place.quietnessScore ?? place.attributes.quietScore;
+  const aestheticViewScore =
+    place.aestheticViewScore ??
+    place.attributes.aestheticViewScore ??
+    (place.attributes.photogenic ? 4.8 : 3.0);
+  const editorReview = place.editorReview || place.longDescription;
+  const bestFor = place.bestFor ?? [];
+  const contactLinks = [
+    place.googleMapsUrl ? { label: 'Haritada aç', href: place.googleMapsUrl, icon: ExternalLink } : null,
+    place.websiteUrl ? { label: 'Website', href: place.websiteUrl, icon: ExternalLink } : null,
+    place.instagramUrl ? { label: 'Instagram', href: place.instagramUrl, icon: ExternalLink } : null,
+  ].filter((link): link is { label: string; href: string; icon: typeof ExternalLink } => Boolean(link));
 
   // Available lists to save to
   const availableLists: SavedListName[] = [
@@ -149,9 +163,31 @@ export default function PlaceDetailSheet({
                 <span className="font-mono text-[9px] font-semibold tracking-widest uppercase">Editör İncelemesi</span>
               </div>
               <p className="font-sans text-[#2C2C2C] text-sm leading-relaxed font-light first-letter:text-3xl first-letter:font-serif italic first-letter:float-left first-letter:mr-2.5 first-letter:text-[#bd9a6f] first-letter:font-light">
-                {place.longDescription}
+                {editorReview}
               </p>
             </div>
+
+            {(bestFor.length > 0 || place.mood) && (
+              <div className="space-y-3">
+                {place.mood && (
+                  <div className="font-mono text-[10px] font-bold tracking-widest text-[#bd9a6f] uppercase">
+                    Ruh hali: {place.mood}
+                  </div>
+                )}
+                {bestFor.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {bestFor.map((item) => (
+                      <span
+                        key={item}
+                        className="font-mono text-[9px] text-[#8C8880] bg-white border border-artistic-border px-2.5 py-1 rounded-full"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Interactive Design & Vibe Scorecard */}
             <div className="space-y-4">
@@ -166,13 +202,13 @@ export default function PlaceDetailSheet({
                   <div className="flex justify-between text-[11px] font-mono text-[#8C8880] uppercase">
                     <span>Tasarım Faktörü</span>
                     <span className="font-bold text-[#2C2C2C]">
-                      {place.attributes.designFactor ? `${place.attributes.designFactor.toFixed(1)}/5` : 'N/A'}
+                      {designScore ? `${designScore.toFixed(1)}/5` : 'N/A'}
                     </span>
                   </div>
                   <div className="w-full bg-[#F1EFEC] h-1 rounded-full overflow-hidden">
                     <div
                       className="bg-[#4A4A40] h-full rounded-full"
-                      style={{ width: `${(place.attributes.designFactor || 4.5) * 20}%` }}
+                      style={{ width: `${(designScore || 4.5) * 20}%` }}
                     />
                   </div>
                 </div>
@@ -182,13 +218,13 @@ export default function PlaceDetailSheet({
                   <div className="flex justify-between text-[11px] font-mono text-[#8C8880] uppercase">
                     <span>Espresso Puanı</span>
                     <span className="font-bold text-[#2C2C2C]">
-                      {place.attributes.coffeeRating ? `${place.attributes.coffeeRating.toFixed(1)}/5` : 'N/A'}
+                      {espressoScore ? `${espressoScore.toFixed(1)}/5` : 'N/A'}
                     </span>
                   </div>
                   <div className="w-full bg-[#F1EFEC] h-1 rounded-full overflow-hidden">
                     <div
                       className="bg-[#bd9a6f] h-full rounded-full"
-                      style={{ width: `${(place.attributes.coffeeRating || 4.0) * 20}%` }}
+                      style={{ width: `${(espressoScore || 4.0) * 20}%` }}
                     />
                   </div>
                 </div>
@@ -198,13 +234,13 @@ export default function PlaceDetailSheet({
                   <div className="flex justify-between text-[11px] font-mono text-[#8C8880] uppercase">
                     <span>Sessizlik Oranı</span>
                     <span className="font-bold text-[#2C2C2C]">
-                      {place.attributes.quietScore ? `${place.attributes.quietScore.toFixed(1)}/5` : 'N/A'}
+                      {quietnessScore ? `${quietnessScore.toFixed(1)}/5` : 'N/A'}
                     </span>
                   </div>
                   <div className="w-full bg-[#F1EFEC] h-1 rounded-full overflow-hidden">
                     <div
                       className="bg-[#4A4A40] h-full rounded-full"
-                      style={{ width: `${(place.attributes.quietScore || 3.5) * 20}%` }}
+                      style={{ width: `${(quietnessScore || 3.5) * 20}%` }}
                     />
                   </div>
                 </div>
@@ -214,13 +250,13 @@ export default function PlaceDetailSheet({
                   <div className="flex justify-between text-[11px] font-mono text-[#8C8880] uppercase">
                     <span>Estetik / Manzara</span>
                     <span className="font-bold text-[#2C2C2C]">
-                      {place.attributes.photogenic ? 'Mükemmel' : 'Sıcak'}
+                      {aestheticViewScore ? `${aestheticViewScore.toFixed(1)}/5` : 'N/A'}
                     </span>
                   </div>
                   <div className="w-full bg-[#F1EFEC] h-1 rounded-full overflow-hidden">
                     <div
                       className="bg-[#bd9a6f] h-full rounded-full"
-                      style={{ width: place.attributes.photogenic ? '95%' : '60%' }}
+                      style={{ width: `${(aestheticViewScore || 3.0) * 20}%` }}
                     />
                   </div>
                 </div>
@@ -299,6 +335,34 @@ export default function PlaceDetailSheet({
                   )}
                 </button>
               </div>
+              {(contactLinks.length > 0 || place.phone) && (
+                <div className="flex flex-wrap gap-2">
+                  {contactLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-white border border-artistic-border rounded-full px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-[#6A665D] flex items-center gap-1.5"
+                      >
+                        <Icon size={11} />
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                  {place.phone && (
+                    <a
+                      href={`tel:${place.phone}`}
+                      className="bg-white border border-artistic-border rounded-full px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-[#6A665D] flex items-center gap-1.5"
+                    >
+                      <Phone size={11} />
+                      {place.phone}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>

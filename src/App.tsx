@@ -2,20 +2,31 @@ import React, { useState, useEffect } from 'react';
 import Onboarding from './components/Onboarding';
 import BottomNav, { TabRoute } from './components/BottomNav';
 import HomeFeed from './components/HomeFeed';
-import MapPage from './components/MapPage';
+import AtlasPage from './components/AtlasPage';
 import SavedPage from './components/SavedPage';
 import PlaceDetailSheet from './components/PlaceDetailSheet';
-import { SAMPLE_PLACES } from './data/places';
+import { usePlaces } from './hooks/usePlaces';
 import { Place, SavedListName } from './types';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import AdminApp from './admin/AdminApp';
+import { getBrowserPathname, isAdminPath } from './admin/adminRoutes';
 
 export default function App() {
+  if (isAdminPath(getBrowserPathname())) {
+    return <AdminApp />;
+  }
+
+  return <PublicYerindeApp />;
+}
+
+function PublicYerindeApp() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [selectedTastes, setSelectedTastes] = useState<string[]>([]);
   const [savedMap, setSavedMap] = useState<Record<string, SavedListName[]>>({});
   const [currentRoute, setCurrentRoute] = useState<TabRoute>('explore');
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const { places, isLoading: placesLoading, error: placesError } = usePlaces();
 
   // Sync state with localStorage safely on mount
   useEffect(() => {
@@ -93,12 +104,14 @@ export default function App() {
   // Helper calculation for global item badge counts
   const savedPlacesCount = Object.keys(savedMap).filter(key => savedMap[key] && savedMap[key].length > 0).length;
 
-  if (!isHydrated) {
+  if (!isHydrated || placesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F9F8F6]">
         <div className="flex flex-col items-center gap-2">
           <div className="w-8 h-8 rounded-full border border-[#4A4A40] border-t-transparent animate-spin" />
-          <span className="font-mono text-[9px] uppercase tracking-widest text-[#8C8880] mt-4 font-semibold">Yerinde Yükleniyor...</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-[#8C8880] mt-4 font-semibold">
+            {placesLoading ? 'Seçkiler Yükleniyor...' : 'Yerinde Yükleniyor...'}
+          </span>
         </div>
       </div>
     );
@@ -120,7 +133,7 @@ export default function App() {
             {/* Conditional route views */}
             {currentRoute === 'explore' && (
               <HomeFeed
-                places={SAMPLE_PLACES}
+                places={places}
                 savedMap={savedMap}
                 onToggleSave={handleToggleSave}
                 onSelectPlace={setActivePlace}
@@ -128,9 +141,9 @@ export default function App() {
               />
             )}
 
-            {currentRoute === 'map' && (
-              <MapPage 
-                places={SAMPLE_PLACES}
+            {currentRoute === 'atlas' && (
+              <AtlasPage
+                places={places}
                 onSelectPlace={setActivePlace}
               />
             )}
@@ -138,7 +151,7 @@ export default function App() {
             {currentRoute === 'saved' && (
               <div className="flex-1 flex flex-col">
                 <SavedPage
-                  places={SAMPLE_PLACES}
+                  places={places}
                   savedMap={savedMap}
                   onToggleSave={handleToggleSave}
                   onSelectPlace={setActivePlace}
@@ -163,6 +176,19 @@ export default function App() {
               onChangeRoute={setCurrentRoute}
               savedCount={savedPlacesCount}
             />
+
+            {placesError && (
+              <div className="fixed top-4 left-4 right-4 max-w-md mx-auto z-50 px-6">
+                <div className="bg-white/95 border border-artistic-border rounded-2xl px-4 py-3 shadow-sm">
+                  <p className="font-mono text-[8.5px] uppercase tracking-widest text-[#bd9a6f] font-bold">
+                    Örnek seçkiler gösteriliyor
+                  </p>
+                  <p className="font-sans text-[11px] text-[#6A665D] mt-1 leading-relaxed">
+                    Supabase bağlantısı tamamlanamadı; Yerinde yerel verilerle devam ediyor.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Rich Editorial Sheet Modal overlay when place is chosen */}
             {activePlace && (

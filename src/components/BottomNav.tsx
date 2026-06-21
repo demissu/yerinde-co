@@ -1,7 +1,7 @@
 import React from 'react';
-import { Compass, Map, Bookmark } from 'lucide-react';
+import { Compass, MapPinned, Bookmark } from 'lucide-react';
 
-export type TabRoute = 'explore' | 'map' | 'saved';
+export type TabRoute = 'explore' | 'atlas' | 'saved';
 
 interface BottomNavProps {
   currentRoute: TabRoute;
@@ -28,18 +28,18 @@ export default function BottomNav({ currentRoute, onChangeRoute, savedCount }: B
         )}
       </button>
 
-      {/* Interactive Map */}
+      {/* Turkey Atlas */}
       <button
-        onClick={() => onChangeRoute('map')}
+        onClick={() => onChangeRoute('atlas')}
         className={`flex flex-col items-center justify-center gap-0.5 py-1 px-4 rounded-xl transition-all select-none cursor-pointer relative ${
-          currentRoute === 'map'
+          currentRoute === 'atlas'
             ? 'text-[#2C2C2C]'
             : 'text-stone-400 hover:text-stone-600'
         }`}
       >
-        <Map size={20} strokeWidth={currentRoute === 'map' ? 2 : 1.5} />
-        <span className="font-mono text-[9px] font-bold tracking-widest uppercase">Harita</span>
-        {currentRoute === 'map' && (
+        <MapPinned size={20} strokeWidth={currentRoute === 'atlas' ? 2 : 1.5} />
+        <span className="font-mono text-[9px] font-bold tracking-widest uppercase">Atlas</span>
+        {currentRoute === 'atlas' && (
           <div className="w-1.5 h-1.5 rounded-full bg-[#4A4A40] absolute -bottom-1.5" />
         )}
       </button>

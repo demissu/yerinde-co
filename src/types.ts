@@ -9,11 +9,22 @@ export interface Place {
   priceLevel: '₺' | '₺₺' | '₺₺₺' | '₺₺₺₺';
   rating: number;
   reviewCount: number;
+  designScore?: number;
+  espressoScore?: number;
+  quietnessScore?: number;
+  aestheticViewScore?: number;
   atmosphereTags: string[];
   editorialDescription: string;
   longDescription: string;
+  editorReview?: string;
+  bestFor?: string[];
+  mood?: string;
   image: string;
   address: string;
+  googleMapsUrl?: string;
+  instagramUrl?: string;
+  websiteUrl?: string;
+  phone?: string;
   coordinates: {
     lat: number;
     lng: number;
@@ -30,6 +41,7 @@ export interface Place {
     workFriendly?: boolean;
     dateSpot?: boolean;
     photogenic?: boolean;
+    aestheticViewScore?: number;
   };
   features: string[];
 }
