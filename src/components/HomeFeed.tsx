@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { Place, SavedListName } from '../types';
 import {
   Search,
-  Sparkles,
   Coffee,
   Heart,
   Waves,
@@ -265,7 +264,7 @@ export default function HomeFeed({
     <div className="flex-1 overflow-y-auto no-scrollbar pb-24 bg-warm-beige">
       {/* Decorative Header */}
       <div className="bg-warm-cream p-6 pb-8 rounded-b-[40px] border-b border-artistic-border space-y-5">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-center text-center">
           <div>
             <h1 className="font-sans font-black text-3.5xl tracking-tighter text-[#2C2C2C] lowercase">
               [yerinde]
@@ -273,15 +272,6 @@ export default function HomeFeed({
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8C8880] opacity-85 mt-0.5">
               Lokal Seçkiler ve Keşif
             </p>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="font-mono text-[10px] text-[#8C8880] uppercase tracking-wider font-semibold">İzmir, TR</span>
-            {selectedTastes.length > 0 && (
-              <span className="text-[10px] text-[#bd9a6f] font-medium flex items-center gap-1 mt-0.5">
-                <Sparkles size={10} className="animate-pulse" />
-                Tarzlar Ayarlandı
-              </span>
-            )}
           </div>
         </div>
 
