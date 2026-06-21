@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { Place, SavedListName } from '../types';
-import { Bookmark, Star, MapPin, ChevronLeft, Trash2, Heart, Info, Sparkles } from 'lucide-react';
+import { Bookmark, ChevronLeft, Trash2, LogIn, LogOut } from 'lucide-react';
 import PlaceCard from './PlaceCard';
+import { UserProfile } from '../hooks/useAuth';
+import { DEFAULT_COLLECTIONS } from '../lib/savedCollections';
 
 interface SavedPageProps {
   places: Place[];
   savedMap: Record<string, SavedListName[]>;
   onToggleSave: (placeId: string, listName: SavedListName) => void;
   onSelectPlace: (place: Place) => void;
+  isLoggedIn: boolean;
+  profile: UserProfile | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
+  syncError?: string | null;
 }
 
 export default function SavedPage({
@@ -15,18 +22,16 @@ export default function SavedPage({
   savedMap,
   onToggleSave,
   onSelectPlace,
+  isLoggedIn,
+  profile,
+  onOpenAuth,
+  onLogout,
+  syncError,
 }: SavedPageProps) {
   const [selectedList, setSelectedList] = useState<SavedListName | null>(null);
 
   // Available defined list categories mapped to Turkish labels and descs
-  const folders: { name: SavedListName; label: string; desc: string; icon: string }[] = [
-    { name: 'Want to go', label: 'Gitmek İstiyorum', desc: 'Gelecek hafta sonları için yapılacaklar listesi', icon: '📍' },
-    { name: 'Visited', label: 'Gittiğim Yerler', desc: 'Bizzat ziyaret edip onayladığım yerler', icon: '✓' },
-    { name: 'Favorites', label: 'Süper Favorilerim', desc: 'Eşsiz lezzet ve tasarım sığınakları', icon: '★' },
-    { name: 'Date spots', label: 'Buluşma Noktaları', desc: 'Loş ışıklar, mumlar ve samimi köşeler', icon: '♥' },
-    { name: 'Coffee list', label: 'Kahve Defteri', desc: 'Üçüncü dalga estetik nitelikli kahveciler', icon: '☕' },
-    { name: 'Weekend route', label: 'Haftasonu Kaçamağı', desc: 'Özenle seçilmiş Urla/Alaçatı rotası', icon: '🚗' },
-  ];
+  const folders = DEFAULT_COLLECTIONS;
 
   // Helper to get list label in Turkish
   const translateListName = (name: SavedListName) => {
@@ -53,19 +58,53 @@ export default function SavedPage({
           {/* User Profile Style Cover Header */}
           <div className="bg-warm-cream p-6 pb-8 rounded-b-[40px] border-b border-artistic-border space-y-5">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-[#4A4A40] flex items-center justify-center border border-artistic-border shadow-sm">
-                <span className="font-serif text-xl italic text-white font-light">E</span>
+              <div className="w-14 h-14 rounded-full bg-[#4A4A40] flex items-center justify-center border border-artistic-border shadow-sm overflow-hidden">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.display_name || profile.username || 'Yerinde'} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-serif text-xl italic text-white font-light">
+                    {(profile?.display_name || profile?.username || 'E').charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div className="space-y-0.5">
                 <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8C8880] opacity-85 block">Kişisel Defter</span>
                 <h1 className="font-serif italic text-2xl font-light tracking-tight text-[#2C2C2C] leading-tight">
-                  Koleksiyon Defteri
+                  {isLoggedIn ? profile?.display_name || profile?.username || 'Koleksiyon Defteri' : 'Koleksiyon Defteri'}
                 </h1>
                 <p className="font-sans text-[11px] text-[#6A665D] leading-relaxed">
-                  Özenle seçilmiş Ege koleksiyonlarınız, koordinatlarınız ve rotalarınız.
+                  {isLoggedIn
+                    ? 'Kaydettiğiniz yerler artık cihazlarınız arasında eşitlenir.'
+                    : 'Defterini kaybetmemek için giriş yap.'}
                 </p>
               </div>
             </div>
+
+            <div className="flex gap-2">
+              {isLoggedIn ? (
+                <button
+                  onClick={onLogout}
+                  className="bg-white border border-artistic-border rounded-full px-3 py-1.5 text-[9px] font-mono font-bold tracking-widest uppercase text-[#6A665D] flex items-center gap-1.5"
+                >
+                  <LogOut size={11} />
+                  Çıkış
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenAuth}
+                  className="bg-white border border-artistic-border rounded-full px-3 py-1.5 text-[9px] font-mono font-bold tracking-widest uppercase text-[#6A665D] flex items-center gap-1.5"
+                >
+                  <LogIn size={11} />
+                  Giriş yap
+                </button>
+              )}
+            </div>
+
+            {syncError && (
+              <div className="bg-white border border-artistic-border rounded-2xl p-3 text-[11px] text-[#bd9a6f] leading-relaxed">
+                {syncError}
+              </div>
+            )}
 
             {/* Micro Stats Grid */}
             <div className="grid grid-cols-3 gap-2 bg-white p-3.5 rounded-2xl border border-artistic-border shadow-sm">

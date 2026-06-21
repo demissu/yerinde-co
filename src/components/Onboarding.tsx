@@ -36,17 +36,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         <span className="font-sans text-sm tracking-tight text-[#2C2C2C] font-black lowercase">
           [yerinde] <span className="font-mono text-[9px] text-[#8C8880] uppercase font-bold tracking-[0.15em] ml-1.5">// Tarz Seçimi</span>
         </span>
-        <span className="font-mono text-xs text-[#bd9a6f] font-semibold">İzmir, TR</span>
       </div>
 
       {/* Magazine Styled Heading */}
       <div className="space-y-3 mb-12">
         <h1 className="font-serif text-5xl font-light tracking-tight text-[#2C2C2C] leading-[1.08]">
-          Egeyi <br />
+          Türkiye'yi <br />
           <span className="font-sans font-black tracking-tighter text-[40px] text-[#2C2C2C] not-italic mr-1.5 lg:mr-2">[yerinde]</span> keşfet.
         </h1>
         <p className="font-sans text-xs text-[#6A665D] leading-relaxed max-w-[85%] font-light">
-          Üçüncü nesil kahveciler, taş bistrolar ve kıyı sığınaklarından oluşan size özel keşif akışını kişiselleştirmek için estetik tarzınızı seçin.
+          Türkiye'nin seçilmiş mekanlarını, yerel rotalarını ve gizli keşiflerini size uygun bir akışta sunabilmemiz için tarzınızı seçin.
         </p>
       </div>
 

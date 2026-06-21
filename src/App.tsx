@@ -5,7 +5,11 @@ import HomeFeed from './components/HomeFeed';
 import AtlasPage from './components/AtlasPage';
 import SavedPage from './components/SavedPage';
 import PlaceDetailSheet from './components/PlaceDetailSheet';
+import AuthModal from './components/AuthModal';
+import ProfileSetup from './components/ProfileSetup';
 import { usePlaces } from './hooks/usePlaces';
+import { useAuth } from './hooks/useAuth';
+import { useSavedCollections } from './hooks/useSavedCollections';
 import { Place, SavedListName } from './types';
 import { RefreshCw } from 'lucide-react';
 import AdminApp from './admin/AdminApp';
@@ -22,11 +26,21 @@ export default function App() {
 function PublicYerindeApp() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [selectedTastes, setSelectedTastes] = useState<string[]>([]);
-  const [savedMap, setSavedMap] = useState<Record<string, SavedListName[]>>({});
+  const [localSavedMap, setLocalSavedMap] = useState<Record<string, SavedListName[]>>({});
   const [currentRoute, setCurrentRoute] = useState<TabRoute>('explore');
   const [activePlace, setActivePlace] = useState<Place | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const { places, isLoading: placesLoading, error: placesError } = usePlaces();
+  const auth = useAuth();
+  const {
+    savedMap,
+    isLoading: savesLoading,
+    error: savesError,
+    authPrompt,
+    clearAuthPrompt,
+    toggleSave,
+  } = useSavedCollections(auth.user, localSavedMap);
 
   // Sync state with localStorage safely on mount
   useEffect(() => {
@@ -42,7 +56,7 @@ function PublicYerindeApp() {
         setSelectedTastes(JSON.parse(storedTastes));
       }
       if (storedSaves) {
-        setSavedMap(JSON.parse(storedSaves));
+        setLocalSavedMap(JSON.parse(storedSaves));
       } else {
         // Pre-populate some aesthetic sample list state so they start with interesting, saved spots!
         const initialSaves: Record<string, SavedListName[]> = {
@@ -51,7 +65,7 @@ function PublicYerindeApp() {
           'place_cun_taskahve': ['Visited', 'Weekend route'],
           'place_als_awake': ['Coffee list'],
         };
-        setSavedMap(initialSaves);
+        setLocalSavedMap(initialSaves);
         localStorage.setItem('yerinde_saves', JSON.stringify(initialSaves));
       }
     } catch (e) {
@@ -78,33 +92,13 @@ function PublicYerindeApp() {
 
   // Toggle saving spot in specific list folders
   const handleToggleSave = (placeId: string, listName: SavedListName) => {
-    setSavedMap((prev) => {
-      const currentLists = prev[placeId] || [];
-      let updatedLists: SavedListName[];
-
-      if (currentLists.includes(listName)) {
-        // Remove from list
-        updatedLists = currentLists.filter((l) => l !== listName);
-      } else {
-        // Add to list
-        updatedLists = [...currentLists, listName];
-      }
-
-      const updatedMap = {
-        ...prev,
-        [placeId]: updatedLists,
-      };
-
-      // Persist in localStorage
-      localStorage.setItem('yerinde_saves', JSON.stringify(updatedMap));
-      return updatedMap;
-    });
+    toggleSave(placeId, listName);
   };
 
   // Helper calculation for global item badge counts
   const savedPlacesCount = Object.keys(savedMap).filter(key => savedMap[key] && savedMap[key].length > 0).length;
 
-  if (!isHydrated || placesLoading) {
+  if (!isHydrated || placesLoading || auth.isLoading || (auth.user && savesLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F9F8F6]">
         <div className="flex flex-col items-center gap-2">
@@ -114,6 +108,16 @@ function PublicYerindeApp() {
           </span>
         </div>
       </div>
+    );
+  }
+
+  if (auth.needsProfileSetup) {
+    return (
+      <ProfileSetup
+        profile={auth.profile}
+        onSave={auth.saveProfile}
+        onLogout={auth.signOut}
+      />
     );
   }
 
@@ -155,6 +159,11 @@ function PublicYerindeApp() {
                   savedMap={savedMap}
                   onToggleSave={handleToggleSave}
                   onSelectPlace={setActivePlace}
+                  isLoggedIn={Boolean(auth.user)}
+                  profile={auth.profile}
+                  onOpenAuth={() => setIsAuthOpen(true)}
+                  onLogout={auth.signOut}
+                  syncError={savesError}
                 />
                 
                 {/* Embedded Quick Preference Reset inside Portfolio Footer */}
@@ -190,6 +199,25 @@ function PublicYerindeApp() {
               </div>
             )}
 
+            {authPrompt && (
+              <div className="fixed top-4 left-4 right-4 max-w-md mx-auto z-50 px-6">
+                <div className="bg-white/95 border border-artistic-border rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
+                  <p className="font-sans text-[11px] text-[#6A665D] leading-relaxed">
+                    {authPrompt}
+                  </p>
+                  <button
+                    onClick={() => {
+                      clearAuthPrompt();
+                      setIsAuthOpen(true);
+                    }}
+                    className="font-mono text-[8.5px] font-bold tracking-widest text-[#bd9a6f] uppercase shrink-0"
+                  >
+                    Giriş
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Rich Editorial Sheet Modal overlay when place is chosen */}
             {activePlace && (
               <PlaceDetailSheet
@@ -197,6 +225,16 @@ function PublicYerindeApp() {
                 savedLists={savedMap[activePlace.id] || []}
                 onToggleSave={handleToggleSave}
                 onClose={() => setActivePlace(null)}
+              />
+            )}
+
+            {isAuthOpen && (
+              <AuthModal
+                onClose={() => setIsAuthOpen(false)}
+                onGoogle={auth.signInWithGoogle}
+                onEmailLogin={auth.signInWithEmail}
+                onEmailSignup={auth.signUpWithEmail}
+                error={auth.error}
               />
             )}
             
