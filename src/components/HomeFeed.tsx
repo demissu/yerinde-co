@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Place, SavedListName } from '../types';
+import { EDITORIAL_ROUTES, EditorialRoute } from '../data/routes';
 import {
   Search,
   Coffee,
@@ -14,6 +15,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import PlaceCard from './PlaceCard';
+import RoutesSection from './RoutesSection';
+import RouteDetailSheet from './RouteDetailSheet';
 
 interface HomeFeedProps {
   places: Place[];
@@ -111,6 +114,7 @@ export default function HomeFeed({
   const [selectedDiscoveryFilter, setSelectedDiscoveryFilter] = useState<DiscoveryFilter>('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
   const [activePersonalKey, setActivePersonalKey] = useState('coffee');
+  const [activeRoute, setActiveRoute] = useState<EditorialRoute | null>(null);
 
   // Filter places based on search/discovery category
   const filteredPlaces = places.filter((place) => {
@@ -126,6 +130,7 @@ export default function HomeFeed({
   });
 
   const visiblePlaces = filteredPlaces;
+  const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
 
   const getSavedLists = (placeId: string) => savedMap[placeId] || [];
   const getSaveScore = (place: Place) => getSavedLists(place.id).length;
@@ -421,24 +426,38 @@ export default function HomeFeed({
               )}
             </section>
 
-            {/* 3. Bu Hafta Trend */}
+            {/* 3. Editör Rotaları */}
+            <RoutesSection
+              routes={EDITORIAL_ROUTES}
+              placesById={placesById}
+              onSelectRoute={setActiveRoute}
+              header={(
+                <SectionHeader
+                  title="Editör Rotaları"
+                  description="Birbiriyle uyumlu mekanlardan oluşan hazır keşif planları."
+                  index="03"
+                />
+              )}
+            />
+
+            {/* 4. Bu Hafta Trend */}
             <section className="space-y-4">
               <SectionHeader
                 title="Bu Hafta Trend"
                 description="Defterlere en çok giren ve öne çıkan yerler."
-                index="03"
+                index="04"
               />
               <div className="grid grid-cols-1 gap-2">
                 {trendingPlaces.map(renderPlaceCard)}
               </div>
             </section>
 
-            {/* 4. Yeni Eklenenler */}
+            {/* 5. Yeni Eklenenler */}
             <section className="space-y-4">
               <SectionHeader
                 title="Yeni Eklenenler"
                 description="Supabase seçkisinden feed’e en son düşen mekanlar."
-                index="04"
+                index="05"
               />
               {newestPlaces.length === 0 ? (
                 <EmptyState text="Yeni eklenenler yakında." />
@@ -451,12 +470,12 @@ export default function HomeFeed({
               )}
             </section>
 
-            {/* 5. Editörün Defterinden */}
+            {/* 6. Editörün Defterinden */}
             <section className="space-y-4">
               <SectionHeader
                 title="Editörün Defterinden"
                 description="Kısa hikayeler ve küçük rota fikirleri."
-                index="05"
+                index="06"
               />
               <div className="space-y-3">
                 {editorialStories.map((story) => (
@@ -496,12 +515,12 @@ export default function HomeFeed({
               </div>
             </section>
 
-            {/* 6. Yakında Gideceklerim */}
+            {/* 7. Yakında Gideceklerim */}
             <section className="space-y-4">
               <SectionHeader
                 title="Yakında Gideceklerim"
                 description="Defterinden hızlı bir sonraki durak önizlemesi."
-                index="06"
+                index="07"
               />
               {savedPreviewPlaces.length === 0 ? (
                 <EmptyState text="Henüz yakına aldığın bir yer yok." />
@@ -514,6 +533,18 @@ export default function HomeFeed({
           </>
         )}
       </div>
+
+      {activeRoute && (
+        <RouteDetailSheet
+          route={activeRoute}
+          placesById={placesById}
+          onClose={() => setActiveRoute(null)}
+          onSelectPlace={(place) => {
+            setActiveRoute(null);
+            onSelectPlace(place);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -531,8 +562,8 @@ function SectionHeader({
     <div className="flex justify-between items-end">
       <div className="space-y-1">
         <h2 className="font-serif text-xl font-normal text-[#2C2C2C] flex items-center gap-2">
-          {index === '03' && <Flame size={18} className="text-[#bd9a6f]" />}
-          {index === '06' && <Bookmark size={18} className="text-[#bd9a6f]" />}
+          {title === 'Bu Hafta Trend' && <Flame size={18} className="text-[#bd9a6f]" />}
+          {title === 'Yakında Gideceklerim' && <Bookmark size={18} className="text-[#bd9a6f]" />}
           <span>{title}</span>
         </h2>
         {description && (

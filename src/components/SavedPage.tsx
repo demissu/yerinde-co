@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Place, SavedListName } from '../types';
-import { Bookmark, ChevronLeft, Trash2, LogIn, LogOut } from 'lucide-react';
+import { Bookmark, ChevronLeft, Trash2, LogIn, LogOut, Clock, MapPin, Route as RouteIcon } from 'lucide-react';
 import PlaceCard from './PlaceCard';
 import { UserProfile } from '../hooks/useAuth';
 import { DEFAULT_COLLECTIONS } from '../lib/savedCollections';
+import { EDITORIAL_ROUTES, EditorialRoute } from '../data/routes';
+import RouteDetailSheet from './RouteDetailSheet';
 
 interface SavedPageProps {
   places: Place[];
@@ -29,6 +31,7 @@ export default function SavedPage({
   syncError,
 }: SavedPageProps) {
   const [selectedList, setSelectedList] = useState<SavedListName | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<EditorialRoute | null>(null);
 
   // Available defined list categories mapped to Turkish labels and descs
   const folders = DEFAULT_COLLECTIONS;
@@ -48,6 +51,15 @@ export default function SavedPage({
 
   // Calculate stats
   const totalSavedCount = Object.values(savedMap).filter(lists => lists.length > 0).length;
+  const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
+  const savedRoutes = useMemo(() => {
+    try {
+      const savedRouteIds = JSON.parse(localStorage.getItem('yerinde_saved_routes') || '[]') as string[];
+      return EDITORIAL_ROUTES.filter((route) => savedRouteIds.includes(route.id));
+    } catch {
+      return [];
+    }
+  }, []);
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar pb-24 bg-[#F9F8F6]">
@@ -186,6 +198,67 @@ export default function SavedPage({
               })}
             </div>
           </div>
+
+          <div className="px-6 space-y-4">
+            <h2 className="font-serif text-lg font-normal text-[#2C2C2C] tracking-tight">
+              Kaydedilen Rotalar
+            </h2>
+
+            {savedRoutes.length === 0 ? (
+              <div className="text-center p-6 bg-warm-cream/35 rounded-2xl text-[#8C8880] text-xs border border-artistic-border/60">
+                Henüz rota kaydetmedin.
+              </div>
+            ) : (
+              <div className="no-scrollbar overflow-x-auto flex gap-4 -mx-6 px-6 pt-1">
+                {savedRoutes.map((route) => (
+                  <button
+                    key={route.id}
+                    onClick={() => setSelectedRoute(route)}
+                    className="w-64 shrink-0 bg-white border border-artistic-border rounded-[1.5rem] p-2.5 shadow-sm hover:border-[#bd9a6f]/60 transition-all duration-300 text-left cursor-pointer group"
+                  >
+                    <div className="relative w-full aspect-16/10 rounded-[1.1rem] overflow-hidden bg-[#D5D2CE]">
+                      <img
+                        src={route.coverImage}
+                        alt={route.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                      <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-artistic-dark font-mono text-[8px] px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                        <MapPin size={9} />
+                        {route.area}
+                      </span>
+                    </div>
+                    <div className="mt-3 px-1 space-y-2">
+                      <h3 className="font-serif italic text-lg font-light text-[#2C2C2C] line-clamp-1 group-hover:text-warm-brand transition-colors">
+                        {route.title}
+                      </h3>
+                      <div className="flex items-center gap-2 font-mono text-[8px] font-bold tracking-widest text-[#8C8880] uppercase">
+                        <span className="flex items-center gap-1">
+                          <Clock size={10} className="text-[#bd9a6f]" />
+                          {route.duration}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <RouteIcon size={10} className="text-[#bd9a6f]" />
+                          {route.stops.length} durak
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {route.moodTags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="font-mono text-[8px] text-[#8C8880] bg-[#F9F8F6] border border-artistic-border px-2 py-0.5 rounded-full"
+                          >
+                            #{tag.replace(/\s+/g, '')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         /* Expanded Single List Detail View */
@@ -258,6 +331,17 @@ export default function SavedPage({
             )}
           </div>
         </div>
+      )}
+      {selectedRoute && (
+        <RouteDetailSheet
+          route={selectedRoute}
+          placesById={placesById}
+          onClose={() => setSelectedRoute(null)}
+          onSelectPlace={(place) => {
+            setSelectedRoute(null);
+            onSelectPlace(place);
+          }}
+        />
       )}
     </div>
   );
