@@ -23,6 +23,28 @@ type AtlasSelection = {
   coverImage?: string;
 };
 
+type AtlasRouteItem = {
+  title: string;
+  area: string;
+  description: string;
+  image: string;
+  duration: string;
+  stops: number;
+  tags: string[];
+  placeIds: string[];
+};
+
+type AtlasCityView = {
+  plateCode: string;
+  name: string;
+  region: TurkeyRegionName;
+  why: string;
+  coverImage: string;
+  tags: string[];
+  placeCount: number;
+  routeCount: number;
+};
+
 const getRegionForPlace = (place: Place): TurkeyRegionName =>
   cityRegionByName[place.city] || cityRegionByName[place.district] || 'Ege';
 
@@ -105,6 +127,8 @@ const routeMeta = [
 
 export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
   const [selection, setSelection] = useState<AtlasSelection | null>(null);
+  const [selectedCity, setSelectedCity] = useState<AtlasCityView | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [citySearch, setCitySearch] = useState('');
   const [cityRegionFilter, setCityRegionFilter] = useState<(typeof TURKEY_REGION_FILTERS)[number]>('Tümü');
   const [showAllCities, setShowAllCities] = useState(false);
@@ -174,6 +198,193 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
   const showSelection = (nextSelection: AtlasSelection) => {
     setSelection(nextSelection);
   };
+
+  const getRoutePlaces = (route: AtlasRouteItem) =>
+    places.filter((place) => route.placeIds.includes(place.id));
+
+  const getRoutesForCity = (city: AtlasCityView) => {
+    const cityPlaces = getCityPlaces(city.name);
+    const cityPlaceIds = new Set(cityPlaces.map((place) => place.id));
+    const cityName = city.name.toLocaleLowerCase('tr-TR');
+
+    return atlasRoutes.filter((route) => {
+      const routeArea = route.area.toLocaleLowerCase('tr-TR');
+      return routeArea.includes(cityName) || route.placeIds.some((placeId) => cityPlaceIds.has(placeId));
+    });
+  };
+
+  const openCityDetail = (city: AtlasCityView) => {
+    setSelectedCity(city);
+    setSelectedDistrict(null);
+  };
+
+  if (selectedCity) {
+    const cityPlaces = getCityPlaces(selectedCity.name);
+    const cityRoutes = getRoutesForCity(selectedCity);
+    const visibleCityPlaces = selectedDistrict
+      ? cityPlaces.filter((place) => place.district === selectedDistrict)
+      : cityPlaces;
+    const districts = Array.from(new Set(cityPlaces.map((place) => place.district).filter(Boolean)))
+      .map((district) => {
+        const districtPlaces = cityPlaces.filter((place) => place.district === district);
+        const districtPlaceIds = new Set(districtPlaces.map((place) => place.id));
+        const routeCount = cityRoutes.filter((route) => {
+          const area = route.area.toLocaleLowerCase('tr-TR');
+          return (
+            area.includes(district.toLocaleLowerCase('tr-TR')) ||
+            route.placeIds.some((placeId) => districtPlaceIds.has(placeId))
+          );
+        }).length;
+        const moodText =
+          districtPlaces
+            .flatMap((place) => place.atmosphereTags)
+            .filter(Boolean)
+            .slice(0, 3)
+            .join(', ') || 'Seçkiler hazırlanıyor';
+
+        return {
+          name: district,
+          placeCount: districtPlaces.length,
+          routeCount,
+          moodText,
+        };
+      })
+      .sort((a, b) => b.placeCount - a.placeCount || a.name.localeCompare(b.name, 'tr-TR'));
+
+    return (
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-24 bg-[#F9F8F6]">
+        <div className="bg-warm-cream p-6 pb-8 rounded-b-[40px] border-b border-artistic-border space-y-5">
+          <button
+            onClick={() => {
+              setSelectedCity(null);
+              setSelectedDistrict(null);
+            }}
+            className="flex items-center gap-1.5 font-mono text-[9px] font-bold tracking-widest text-[#bd9a6f] uppercase cursor-pointer"
+          >
+            <ArrowLeft size={12} />
+            Atlas'a dön
+          </button>
+
+          <div className="bg-white border border-artistic-border rounded-[2rem] overflow-hidden shadow-sm">
+            <div className="relative aspect-16/10 bg-[#F1EFEC]">
+              <img
+                src={selectedCity.coverImage}
+                alt={selectedCity.name}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute left-4 top-4 bg-warm-cream/95 border border-artistic-border rounded-full px-3 py-1.5 font-mono text-[11px] font-bold text-[#2C2C2C] shadow-sm">
+                {selectedCity.plateCode}
+              </span>
+            </div>
+            <div className="p-5 space-y-3">
+              <span className="font-mono text-[9px] font-bold tracking-widest text-[#bd9a6f] uppercase">
+                {selectedCity.region}
+              </span>
+              <h1 className="font-serif italic text-3xl font-light tracking-tight text-[#2C2C2C]">
+                {selectedCity.name}
+              </h1>
+              <p className="font-sans text-xs text-[#6A665D] leading-relaxed">
+                {selectedCity.why}
+              </p>
+              <MetaRow placeCount={cityPlaces.length} routeCount={cityRoutes.length} />
+              <TagRow tags={selectedCity.tags.slice(0, 4)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-6 space-y-9">
+          <section className="space-y-4">
+            <AtlasSectionTitle title="İlçeler" count={districts.length} />
+            {districts.length === 0 ? (
+              <EmptyAtlasState text="Bu şehir için seçkiler yakında." />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                {districts.map((district) => (
+                  <button
+                    key={district.name}
+                    onClick={() =>
+                      setSelectedDistrict((current) => (current === district.name ? null : district.name))
+                    }
+                    className={`bg-white border rounded-[1.35rem] p-3 text-left shadow-sm transition-colors ${
+                      selectedDistrict === district.name
+                        ? 'border-[#bd9a6f]'
+                        : 'border-artistic-border hover:border-[#bd9a6f]/70'
+                    }`}
+                  >
+                    <h3 className="font-serif italic text-lg text-[#2C2C2C] leading-tight">{district.name}</h3>
+                    <div className="flex flex-wrap gap-1.5 font-mono text-[8px] text-[#8C8880] mt-2">
+                      <span>{district.placeCount} mekan</span>
+                      <span className="text-[#E5E2DE]">•</span>
+                      <span>{district.routeCount} rota</span>
+                    </div>
+                    <p className="text-[10px] text-[#6A665D] leading-relaxed mt-2 line-clamp-2">
+                      {district.moodText}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-4">
+            <AtlasSectionTitle title={`${selectedCity.name} Rotaları`} count={cityRoutes.length} />
+            {cityRoutes.length === 0 ? (
+              <EmptyAtlasState text="Bu şehir için seçkiler yakında." />
+            ) : (
+              <div className="space-y-4">
+                {cityRoutes.map((route) => (
+                  <button
+                    key={route.title}
+                    onClick={() => {
+                      setSelectedCity(null);
+                      setSelectedDistrict(null);
+                      showSelection({
+                        title: route.title,
+                        eyebrow: route.area,
+                        description: route.description,
+                        places: getRoutePlaces(route),
+                        coverImage: route.image,
+                      });
+                    }}
+                    className="w-full bg-white border border-artistic-border rounded-[2rem] overflow-hidden text-left shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
+                  >
+                    <img src={route.image} alt={route.title} className="w-full aspect-16/9 object-cover bg-[#F1EFEC]" />
+                    <div className="p-4 space-y-2">
+                      <span className="font-mono text-[8px] font-bold text-[#bd9a6f] tracking-widest uppercase">{route.area}</span>
+                      <h3 className="font-serif italic text-xl text-[#2C2C2C]">{route.title}</h3>
+                      <p className="text-[11px] text-[#6A665D] leading-relaxed">{route.description}</p>
+                      <div className="flex items-center gap-3 text-[10px] font-mono text-[#8C8880]">
+                        <span className="flex items-center gap-1"><Clock size={11} />{route.duration}</span>
+                        <span className="flex items-center gap-1"><Route size={11} />{route.stops} durak</span>
+                      </div>
+                      <TagRow tags={route.tags} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-4">
+            <AtlasSectionTitle
+              title={selectedDistrict ? `${selectedDistrict} Mekanları` : `${selectedCity.name} Mekanları`}
+              count={visibleCityPlaces.length}
+            />
+            {visibleCityPlaces.length === 0 ? (
+              <EmptyAtlasState text="Bu şehir için seçkiler yakında." />
+            ) : (
+              <div className="space-y-4">
+                {visibleCityPlaces.map((place) => (
+                  <PlaceListButton key={place.id} place={place} onSelectPlace={onSelectPlace} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   if (selection) {
     return (
@@ -329,13 +540,7 @@ export default function AtlasPage({ places, onSelectPlace }: AtlasPageProps) {
               return (
                 <button
                   key={city.name}
-                  onClick={() => showSelection({
-                    title: city.name,
-                    eyebrow: city.region,
-                    description: city.why,
-                    places: cityPlaces,
-                    coverImage: city.coverImage,
-                  })}
+                  onClick={() => openCityDetail(city)}
                   className="bg-white border border-artistic-border rounded-[1.35rem] overflow-hidden text-left shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
                 >
                   <div className="relative aspect-4/3 bg-[#F1EFEC] overflow-hidden">
@@ -451,6 +656,45 @@ function TagRow({ tags }: { tags: string[] }) {
           #{tag}
         </span>
       ))}
+    </div>
+  );
+}
+
+function PlaceListButton({
+  place,
+  onSelectPlace,
+}: {
+  key?: React.Key;
+  place: Place;
+  onSelectPlace: (place: Place) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelectPlace(place)}
+      className="w-full bg-white border border-artistic-border rounded-[1.5rem] p-3 flex gap-3 text-left shadow-sm hover:border-[#bd9a6f]/70 transition-colors"
+    >
+      <img
+        src={place.image}
+        alt={place.name}
+        referrerPolicy="no-referrer"
+        className="w-20 h-20 rounded-[1.1rem] object-cover bg-[#F1EFEC] shrink-0"
+      />
+      <div className="min-w-0 flex-1 py-1">
+        <span className="font-mono text-[8px] font-bold text-[#bd9a6f] tracking-widest uppercase">
+          {place.district}, {place.city}
+        </span>
+        <h3 className="font-serif italic text-lg text-[#2C2C2C] truncate mt-0.5">{place.name}</h3>
+        <p className="text-[11px] text-[#6A665D] line-clamp-2 leading-relaxed mt-1">{place.editorialDescription}</p>
+      </div>
+    </button>
+  );
+}
+
+function EmptyAtlasState({ text }: { text: string }) {
+  return (
+    <div className="bg-white border border-artistic-border rounded-[2rem] p-8 text-center shadow-sm">
+      <Sparkles size={22} className="text-[#bd9a6f] mx-auto mb-3" />
+      <h3 className="font-serif italic text-lg text-[#2C2C2C]">{text}</h3>
     </div>
   );
 }

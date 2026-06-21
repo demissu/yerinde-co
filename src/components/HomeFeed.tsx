@@ -42,67 +42,77 @@ type EditorialStory = {
   places: Place[];
 };
 
-type DiscoveryFilter =
-  | 'Tümü'
-  | 'Kahve'
-  | 'Yemek'
-  | 'Tatlı'
-  | 'Bar'
-  | 'Kahvaltı'
-  | 'Çalışmalık'
-  | 'Manzara'
-  | 'Konaklama';
-
-const discoveryFilters: DiscoveryFilter[] = [
-  'Tümü',
-  'Kahve',
-  'Yemek',
-  'Tatlı',
-  'Bar',
-  'Kahvaltı',
-  'Çalışmalık',
-  'Manzara',
-  'Konaklama',
-];
+type EditorialCollection = {
+  key: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  keywords: string[];
+  predicate?: (place: Place) => boolean;
+};
 
 const getPlaceText = (place: Place) =>
-  `${place.category} ${place.name} ${place.city} ${place.district} ${place.editorialDescription} ${place.longDescription} ${place.atmosphereTags.join(' ')} ${place.features.join(' ')}`.toLowerCase();
+  `${place.category} ${place.name} ${place.city} ${place.district} ${place.editorialDescription} ${place.longDescription} ${place.editorReview ?? ''} ${place.bestFor?.join(' ') ?? ''} ${place.mood ?? ''} ${place.atmosphereTags.join(' ')} ${place.features.join(' ')}`.toLocaleLowerCase('tr-TR');
 
-const matchesDiscoveryFilter = (place: Place, filter: DiscoveryFilter) => {
-  if (filter === 'Tümü') return true;
+const editorialCollections: EditorialCollection[] = [
+  {
+    key: 'quiet-work',
+    title: 'Sessiz Çalışma',
+    description: 'Odaklanmak için sakin masalar.',
+    icon: Laptop,
+    keywords: ['sessiz', 'sakin', 'çalış', 'work', 'laptop', 'odak', 'okuma'],
+    predicate: (place) =>
+      place.category === 'Work-friendly' ||
+      place.attributes.workFriendly ||
+      (place.quietnessScore ?? place.attributes.quietScore ?? 0) >= 3.8,
+  },
+  {
+    key: 'sea',
+    title: 'Deniz Kenarı',
+    description: 'Kahve ve manzara birlikte.',
+    icon: Waves,
+    keywords: ['deniz', 'sahil', 'kıyı', 'ada', 'manzara', 'view'],
+    predicate: (place) => Boolean(place.attributes.seaView),
+  },
+  {
+    key: 'date-night',
+    title: 'Date Night',
+    description: 'İlk buluşma ve uzun sohbetler.',
+    icon: Heart,
+    keywords: ['date', 'buluşma', 'romantik', 'akşam', 'bar', 'kokteyl', 'sohbet'],
+    predicate: (place) => place.category === 'Date' || place.category === 'Bar' || Boolean(place.attributes.dateSpot),
+  },
+  {
+    key: 'sunday',
+    title: 'Pazar Rotası',
+    description: 'Yavaş başlayan günler için.',
+    icon: Clock,
+    keywords: ['pazar', 'brunch', 'kahvaltı', 'yavaş', 'uzun', 'öğle'],
+    predicate: (place) => place.category === 'Breakfast',
+  },
+  {
+    key: 'sunset',
+    title: 'Gün Batımı',
+    description: 'Akşam ışığını kaçırma.',
+    icon: Flame,
+    keywords: ['gün batımı', 'akşam ışığı', 'sunset', 'teras', 'manzara', 'deniz'],
+    predicate: (place) => Boolean(place.attributes.seaView || place.attributes.photogenic),
+  },
+  {
+    key: 'books-coffee',
+    title: 'Kitap & Kahve',
+    description: 'Okumalık köşeler ve iyi kahve.',
+    icon: Coffee,
+    keywords: ['kitap', 'okuma', 'kahve', 'coffee', 'sessiz', 'sakin'],
+    predicate: (place) => place.category === 'Coffee' && ((place.quietnessScore ?? place.attributes.quietScore ?? 0) >= 3.5),
+  },
+];
 
-  const text = getPlaceText(place);
-
-  if (filter === 'Kahve') {
-    return place.category === 'Coffee' || text.includes('kahve') || text.includes('coffee');
-  }
-
-  if (filter === 'Yemek') {
-    return place.category === 'Food' || place.category === 'Date' || text.includes('restoran') || text.includes('sofra');
-  }
-
-  if (filter === 'Tatlı') {
-    return place.category === 'Dessert' || text.includes('tatlı') || text.includes('dessert') || text.includes('pasta');
-  }
-
-  if (filter === 'Bar') {
-    return place.category === 'Bar' || text.includes('bar') || text.includes('kokteyl');
-  }
-
-  if (filter === 'Kahvaltı') {
-    return place.category === 'Breakfast' || text.includes('kahvaltı') || text.includes('brunch') || text.includes('breakfast');
-  }
-
-  if (filter === 'Çalışmalık') {
-    return place.category === 'Work-friendly' || place.attributes.workFriendly || (place.attributes.quietScore ?? 0) >= 3.8;
-  }
-
-  if (filter === 'Manzara') {
-    return place.attributes.seaView || text.includes('manzara') || text.includes('deniz') || text.includes('gün batımı') || text.includes('view');
-  }
-
-  return text.includes('konaklama') || text.includes('otel') || text.includes('hotel') || text.includes('pansiyon') || text.includes('stay');
-};
+const getEditorialCollectionPlaces = (places: Place[], collection: EditorialCollection) =>
+  places.filter((place) => {
+    const text = getPlaceText(place);
+    return Boolean(collection.predicate?.(place)) || collection.keywords.some((keyword) => text.includes(keyword));
+  });
 
 export default function HomeFeed({
   places,
@@ -111,26 +121,35 @@ export default function HomeFeed({
   onSelectPlace,
   selectedTastes,
 }: HomeFeedProps) {
-  const [selectedDiscoveryFilter, setSelectedDiscoveryFilter] = useState<DiscoveryFilter>('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeEditorialKey, setActiveEditorialKey] = useState<string | null>(null);
   const [activePersonalKey, setActivePersonalKey] = useState('coffee');
   const [activeRoute, setActiveRoute] = useState<EditorialRoute | null>(null);
 
-  // Filter places based on search/discovery category
+  // Filter places based on search only.
   const filteredPlaces = places.filter((place) => {
     const normalizedQuery = searchQuery.toLowerCase();
-    const matchesDiscovery = matchesDiscoveryFilter(place, selectedDiscoveryFilter);
     const matchesQuery =
       searchQuery === '' ||
       place.name.toLowerCase().includes(normalizedQuery) ||
       place.district.toLowerCase().includes(normalizedQuery) ||
       place.city.toLowerCase().includes(normalizedQuery) ||
       place.atmosphereTags.some((tag) => tag.toLowerCase().includes(normalizedQuery));
-    return matchesDiscovery && matchesQuery;
+    return matchesQuery;
   });
 
   const visiblePlaces = filteredPlaces;
   const placesById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places]);
+  const editorialCollectionCards = useMemo(
+    () =>
+      editorialCollections.map((collection) => ({
+        ...collection,
+        places: getEditorialCollectionPlaces(places, collection),
+      })),
+    [places]
+  );
+  const activeEditorialCollection =
+    editorialCollectionCards.find((collection) => collection.key === activeEditorialKey) || null;
 
   const getSavedLists = (placeId: string) => savedMap[placeId] || [];
   const getSaveScore = (place: Place) => getSavedLists(place.id).length;
@@ -292,25 +311,6 @@ export default function HomeFeed({
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
         </div>
 
-        {/* Category horizontal scrolling selector */}
-        <div className="no-scrollbar overflow-x-auto flex gap-2 -mx-6 px-6 pt-1">
-          {discoveryFilters.map((filter) => {
-            const isSelected = selectedDiscoveryFilter === filter;
-            return (
-              <button
-                key={filter}
-                onClick={() => setSelectedDiscoveryFilter(filter)}
-                className={`px-4 py-1.5 rounded-full text-[11px] cursor-pointer transition-all duration-200 shrink-0 select-none whitespace-nowrap tracking-wide border ${
-                  isSelected
-                    ? 'bg-[#4A4A40] text-white border-[#4A4A40] font-medium'
-                    : 'bg-white hover:bg-[#F9F8F6] text-[#6A665D] border-artistic-border'
-                }`}
-              >
-                {filter}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Main Stream Area */}
@@ -333,13 +333,77 @@ export default function HomeFeed({
 
         {!searchQuery && (
           <>
+            {/* 1. Editör Seçkileri */}
+            <section className="space-y-4 animate-fade-in-up">
+              <SectionHeader
+                title="Editör Seçkileri"
+                description="Bugün ne yapmak istediğine göre seç."
+                index="01"
+              />
+              <div className="no-scrollbar overflow-x-auto flex gap-3 -mx-6 px-6">
+                {editorialCollectionCards.map((collection) => {
+                  const Icon = collection.icon;
+                  const isActive = activeEditorialKey === collection.key;
+                  return (
+                    <button
+                      key={collection.key}
+                      onClick={() => setActiveEditorialKey((current) => (current === collection.key ? null : collection.key))}
+                      className={`w-56 shrink-0 rounded-[1.6rem] border p-4 text-left transition-all cursor-pointer shadow-sm ${
+                        isActive
+                          ? 'bg-[#4A4A40] text-white border-[#4A4A40]'
+                          : 'bg-white text-[#2C2C2C] border-artistic-border hover:border-[#bd9a6f]/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-5">
+                        <span className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                          isActive ? 'bg-white/10 text-[#bd9a6f]' : 'bg-[#F9F8F6] text-[#bd9a6f]'
+                        }`}>
+                          <Icon size={17} />
+                        </span>
+                        <span className={`font-mono text-[8px] font-bold ${isActive ? 'text-stone-300' : 'text-[#8C8880]'}`}>
+                          {collection.places.length}
+                        </span>
+                      </div>
+                      <h3 className="font-serif italic text-xl font-light line-clamp-1">{collection.title}</h3>
+                      <p className={`font-sans text-[11px] leading-relaxed mt-2 line-clamp-2 ${isActive ? 'text-stone-300' : 'text-[#6A665D]'}`}>
+                        {collection.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeEditorialCollection && (
+                <div className="space-y-3">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <h3 className="font-serif italic text-xl text-[#2C2C2C]">{activeEditorialCollection.title}</h3>
+                      <p className="font-sans text-[11px] text-[#8C8880] leading-relaxed">
+                        {activeEditorialCollection.description}
+                      </p>
+                    </div>
+                    <span className="font-mono text-[9px] text-[#8C8880]">
+                      {activeEditorialCollection.places.length} mekan
+                    </span>
+                  </div>
+                  {activeEditorialCollection.places.length === 0 ? (
+                    <EmptyState text="Bu seçki için yeni mekanlar yakında." />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {activeEditorialCollection.places.slice(0, 6).map(renderPlaceCard)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
             {/* 1. Günün Seçkisi */}
             {dailyPick && (
               <section className="space-y-4 animate-fade-in-up">
                 <SectionHeader
                   title="Günün Seçkisi"
                   description="Bugün için kısa, editoryal bir öneri."
-                  index="01"
+                  index="02"
                 />
                 <button
                   onClick={() => onSelectPlace(dailyPick)}
@@ -384,7 +448,7 @@ export default function HomeFeed({
               <SectionHeader
                 title="Sana Özel"
                 description="Moduna göre hızlı keşif başlıkları."
-                index="02"
+                index="03"
               />
               <div className="no-scrollbar overflow-x-auto flex gap-3 -mx-6 px-6">
                 {personalCollections.map((collection) => {
@@ -435,7 +499,7 @@ export default function HomeFeed({
                 <SectionHeader
                   title="Editör Rotaları"
                   description="Birbiriyle uyumlu mekanlardan oluşan hazır keşif planları."
-                  index="03"
+                  index="04"
                 />
               )}
             />
@@ -445,7 +509,7 @@ export default function HomeFeed({
               <SectionHeader
                 title="Bu Hafta Trend"
                 description="Defterlere en çok giren ve öne çıkan yerler."
-                index="04"
+                index="05"
               />
               <div className="grid grid-cols-1 gap-2">
                 {trendingPlaces.map(renderPlaceCard)}
@@ -457,7 +521,7 @@ export default function HomeFeed({
               <SectionHeader
                 title="Yeni Eklenenler"
                 description="Supabase seçkisinden feed’e en son düşen mekanlar."
-                index="05"
+                index="06"
               />
               {newestPlaces.length === 0 ? (
                 <EmptyState text="Yeni eklenenler yakında." />
@@ -475,7 +539,7 @@ export default function HomeFeed({
               <SectionHeader
                 title="Editörün Defterinden"
                 description="Kısa hikayeler ve küçük rota fikirleri."
-                index="06"
+                index="07"
               />
               <div className="space-y-3">
                 {editorialStories.map((story) => (
@@ -520,7 +584,7 @@ export default function HomeFeed({
               <SectionHeader
                 title="Yakında Gideceklerim"
                 description="Defterinden hızlı bir sonraki durak önizlemesi."
-                index="07"
+                index="08"
               />
               {savedPreviewPlaces.length === 0 ? (
                 <EmptyState text="Henüz yakına aldığın bir yer yok." />
